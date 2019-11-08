@@ -1,0 +1,449 @@
+**************************************************
+Note:
+It appears that the problem was the installation of 
+apt-get install gcc-aarch64-linux-gnu was the problem.
+This was an older version gcc version 5.4.0 20160609 (Ubuntu/Linaro 5.4.0-6ubuntu1~16.04.9) 
+The errors in minos-hypervisor & u-boot were fixed with 
+gcc version 7.2.1 20171011 (Linaro GCC 7.2-2017.11)
+**************************************************
+This was the posting about the minos-hypervisor
+Discussed 01/02/19
+https://www.raspberrypi.org/forums/viewtopic.php?t=230260
+https://www.youtube.com/watch?v=82YrcGrkblo
+
+mkdir minos-workspace
+Download the linux kernel & minos-hypervisor, linux-raspberry,
+minos-samples, u-boot,   on RPi4B. Transfer a copy to 16GB
+USB 
+
+forked 11/02/19
+https://github.com/minos-project/linux-raspberry
+https://github.com/minos-project/minos-hypervisor
+https://github.com/develone/minos-samples
+git clone https://github.com/u-boot/u-boot.git
+wget https://releases.linaro.org/components/toolchain/binaries/7.2-2017.11/aarch64-linux-gnu/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu.tar.xz
+****************
+    This link below was no longer avialable
+    # wget http://leyunxi.com/static/debian-arm64-rpi3bplus.img
+    # sudo dd bs=2M if=debian-arm64-rpi3bplus.img of=/dev/sdX
+****************
+11/06/19 decided to test V0.2.2 with Sakaki gentoo-on-rpi64bit
+with genpi64.img.xz on 16GB micro sd.
+
+
+
+Minos Hypervisor v0.2.2 for RPi3B
+
+kernel-version: 4.20 branch:origin/minos-rpi-4.20-y
+ Minos implements a complete virtualization framework that can run multiple VMs 
+ (Linux or RTOS) on one hardware platform. Minos provides CPU virtualization; 
+ interrupt virtualization; memory virtualization; Timer virtual; and the 
+ virtualization of some common peripherals.
+
+
+testing ws009 11/03/19 
+Linux ws009 4.4.0-159-generic #187-Ubuntu SMP Thu Aug 1 16:28:06 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+transfer USB to ws009
+
+When the logging in to ws009 for compiling minos-hypervisor
+vidal@ws009:~$ . .bashrc 
+vidal@ws009:~$ echo $PATH
+/opt/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu/bin:/home/vidal/bin:/home/vidal/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+vidal@ws009:~$ export CROSS_COMPILE=aarch64-linux-gnu-
+vidal@ws009:~$ echo $CROSS_COMPILE
+aarch64-linux-gnu-
+
+root@ws009:/home/vidal# mount /dev/sdb mnt
+
+vidal@ws009:~/$ rsync -avl --delete mnt/minos-workspace .
+tar xjf gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu.tar.xz
+sudo mv gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu /opt
+echo "export PATH=/opt/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu/bin:$PATH" >> ~/.bashrc
+source ~/.bashrc
+export CROSS_COMPILE=aarch64-linux-gnu-
+
+. .bashrc
+vidal@ws009:~/minos-workspace/u-boot$ echo $PATH
+/opt/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu/bin:/home/vidal/bin:/home/vidal/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+
+****************Compile u-boot for 3B+****************
+
+vidal@ws009:~/minos-workspace$ cd u-boot/
+ 
+vidal@ws009:~/minos-workspace/u-boot$ make rpi_3_defconfig
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  YACC    scripts/kconfig/zconf.tab.c
+  LEX     scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+#
+
+
+vidal@ws009:~/minos-workspace/u-boot$ make -j4
+
+vidal@ws009:~/minos-workspace/u-boot$ ls -la u-boot*
+-rwxrwxr-x 1 vidal vidal 4854344 Nov  6 13:14 u-boot
+-rwxrwxr-x 1 vidal vidal  513688 Nov  6 13:14 u-boot.bin
+-rw-rw-r-- 1 vidal vidal    9186 Nov  6 13:14 u-boot.cfg
+-rw-rw-r-- 1 vidal vidal    5613 Nov  6 13:14 u-boot.cfg.configs
+-rw-rw-r-- 1 vidal vidal    1348 Nov  6 13:14 u-boot.lds
+-rw-rw-r-- 1 vidal vidal  480313 Nov  6 13:14 u-boot.map
+-rwxrwxr-x 1 vidal vidal  513688 Nov  6 13:14 u-boot-nodtb.bin
+-rwxrwxr-x 1 vidal vidal 1476992 Nov  6 13:14 u-boot.srec
+-rw-rw-r-- 1 vidal vidal  196184 Nov  6 13:14 u-boot.sym
+
+vidal@ws009:~/minos-workspace/u-boot$ md5sum u-boot.bin 
+975c565d5c2d4b3595264d67de090b7b  u-boot.bin
+This will replace the kernel8.img on the gentoo-on-rpi64bit image.
+Steps to transfer are below.
+
+****************Compile u-boot for 3B+****************
+
+****************Compile Linux Kernel****************
+ 
+  
+vidal@ws009:~/$ cd minos-workspace/linux-raspberry/
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ git checkout -b minos-rpi-4.20-y origin/minos-rpi-4.20-y
+Checking out files: 100% (38640/38640), done.
+Branch minos-rpi-4.20-y set up to track remote branch minos-rpi-4.20-y from origin.
+Switched to a new branch 'minos-rpi-4.20-y'
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- bcmrpi3_defconfig
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+#
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image -j4
+***************important***************
+failed needed to create vidal@ws009:~/linux-raspberry/arch/arm64/boot
+-rw-rw-r-- 1 vidal vidal 13496832 Nov  3 09:46 Image
+failed missing openssl/bio.h
+
+As root install aarach64-linux-gnu on ws009 Ubuntu 16.04
+ 
+apt-get install gcc-aarch64-linux-gnu
+sudo apt-get install libssl-dev
+Install devicetree tool
+  sudo apt-get install device-tree-compiler
+
+Install abootimg android image tool
+  vidal@ws009:~/minos-workspace/minos-samples$ sudo apt-get install abootimg
+
+Install aarch64 gcc cross compilation tool
+vidal@ws009:~$ 
+
+***************important***************
+
+vidal@ws009:~/linux-raspberry$ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image -j4
+  MODPOST vmlinux.o
+  KSYM    .tmp_kallsyms1.o
+  KSYM    .tmp_kallsyms2.o
+  LD      vmlinux
+  SORTEX  vmlinux
+  SYSMAP  System.map
+  OBJCOPY arch/arm64/boot/Image
+  
+vidal@ws009:~/minos-workspace/linux-raspberry$ ls arch/arm64/boot/
+dts  Image  install.sh  Makefile
+Create the modules and device tree files
+vidal@ws009:~/minos-workspace/linux-raspberry$ ls -la arch/arm64/boot/
+total 13644
+drwxr-xr-x  3 vidal vidal     4096 Nov  6 11:32 .
+drwxr-xr-x 12 vidal vidal     4096 Nov  6 11:26 ..
+drwxr-xr-x 29 vidal vidal     4096 Nov  6 11:26 dts
+-rw-r--r--  1 vidal vidal       15 Nov  4 09:04 .gitignore
+-rw-rw-r--  1 vidal vidal 14072320 Nov  6 11:32 Image
+-rw-rw-r--  1 vidal vidal      142 Nov  6 11:32 .Image.cmd
+-rw-r--r--  1 vidal vidal     1562 Nov  4 09:05 install.sh
+-rw-r--r--  1 vidal vidal     1159 Nov  4 09:04 Makefile
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules dtbs -j4  
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ ls -la arch/arm64/boot/dts/broadcom/
+total 364
+drwxr-xr-x  4 vidal vidal  4096 Nov  6 11:34 .
+drwxr-xr-x 29 vidal vidal  4096 Nov  6 11:35 ..
+-rw-rw-r--  1 vidal vidal 18052 Nov  6 11:34 bcm2710-rpi-3-b.dtb
+-rw-rw-r--  1 vidal vidal  2267 Nov  6 11:34 .bcm2710-rpi-3-b.dtb.cmd
+-rw-rw-r--  1 vidal vidal   108 Nov  6 11:34 .bcm2710-rpi-3-b.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal   965 Nov  6 11:34 .bcm2710-rpi-3-b.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 25890 Nov  6 11:34 .bcm2710-rpi-3-b.dtb.dts.tmp
+-rw-r--r--  1 vidal vidal    72 Nov  4 09:04 bcm2710-rpi-3-b.dts
+-rw-rw-r--  1 vidal vidal 18600 Nov  6 11:34 bcm2710-rpi-3-b-plus.dtb
+-rw-rw-r--  1 vidal vidal  2420 Nov  6 11:34 .bcm2710-rpi-3-b-plus.dtb.cmd
+-rw-rw-r--  1 vidal vidal   118 Nov  6 11:34 .bcm2710-rpi-3-b-plus.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal  1050 Nov  6 11:34 .bcm2710-rpi-3-b-plus.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 26679 Nov  6 11:34 .bcm2710-rpi-3-b-plus.dtb.dts.tmp
+-rw-r--r--  1 vidal vidal    77 Nov  4 09:04 bcm2710-rpi-3-b-plus.dts
+-rw-rw-r--  1 vidal vidal 17081 Nov  6 11:34 bcm2710-rpi-cm3.dtb
+-rw-rw-r--  1 vidal vidal  2183 Nov  6 11:34 .bcm2710-rpi-cm3.dtb.cmd
+-rw-rw-r--  1 vidal vidal   108 Nov  6 11:34 .bcm2710-rpi-cm3.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal   882 Nov  6 11:34 .bcm2710-rpi-cm3.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 24406 Nov  6 11:34 .bcm2710-rpi-cm3.dtb.dts.tmp
+-rw-r--r--  1 vidal vidal    72 Nov  4 09:04 bcm2710-rpi-cm3.dts
+-rw-rw-r--  1 vidal vidal 13445 Nov  6 11:34 bcm2837-rpi-3-b.dtb
+-rw-rw-r--  1 vidal vidal  2083 Nov  6 11:34 .bcm2837-rpi-3-b.dtb.cmd
+-rw-rw-r--  1 vidal vidal   108 Nov  6 11:34 .bcm2837-rpi-3-b.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal   782 Nov  6 11:34 .bcm2837-rpi-3-b.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 19449 Nov  6 11:34 .bcm2837-rpi-3-b.dtb.dts.tmp
+-rw-r--r--  1 vidal vidal    71 Nov  4 09:04 bcm2837-rpi-3-b.dts
+-rw-rw-r--  1 vidal vidal 14225 Nov  6 11:34 bcm2837-rpi-3-b-plus.dtb
+-rw-rw-r--  1 vidal vidal  2236 Nov  6 11:34 .bcm2837-rpi-3-b-plus.dtb.cmd
+-rw-rw-r--  1 vidal vidal   118 Nov  6 11:34 .bcm2837-rpi-3-b-plus.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal   867 Nov  6 11:34 .bcm2837-rpi-3-b-plus.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 20454 Nov  6 11:34 .bcm2837-rpi-3-b-plus.dtb.dts.tmp
+-rw-rw-r--  1 vidal vidal    76 Nov  6 11:26 bcm2837-rpi-3-b-plus.dts
+-rw-rw-r--  1 vidal vidal 13433 Nov  6 11:34 bcm2837-rpi-cm3-io3.dtb
+-rw-rw-r--  1 vidal vidal  2146 Nov  6 11:34 .bcm2837-rpi-cm3-io3.dtb.cmd
+-rw-rw-r--  1 vidal vidal   116 Nov  6 11:34 .bcm2837-rpi-cm3-io3.dtb.d.dtc.tmp
+-rw-rw-r--  1 vidal vidal   792 Nov  6 11:34 .bcm2837-rpi-cm3-io3.dtb.d.pre.tmp
+-rw-rw-r--  1 vidal vidal 19848 Nov  6 11:34 .bcm2837-rpi-cm3-io3.dtb.dts.tmp
+-rw-rw-r--  1 vidal vidal    75 Nov  6 11:26 bcm2837-rpi-cm3-io3.dts
+lrwxrwxrwx  1 vidal vidal    49 Nov  4 09:04 bcm283x-rpi-lan7515.dtsi -> ../../../../arm/boot/dts/bcm283x-rpi-lan7515.dtsi
+-rw-rw-r--  1 vidal vidal   456 Nov  6 11:26 Makefile
+-rw-rw-r--  1 vidal vidal     0 Nov  6 11:34 modules.order
+drwxr-xr-x  2 vidal vidal  4096 Nov  6 11:34 northstar2
+drwxr-xr-x  2 vidal vidal  4096 Nov  6 11:34 stingray
+
+Compile Minos
+vidal@ws009:~/$ cd ~/minos-workspace/minos-hypervisor
+ 
+vidal@ws009:~/minos-workspace/minos-hypervisor$ git checkout 1fc00df
+
+commit 1fc00df5126d5a983330f44e1ba72ec4f1136036
+Author: Min Le <lemin9538@gmail.com>
+Date:   Fri Feb 8 23:34:03 2019 +0800
+
+    Minos Hypervisor Version 0.2.2 Released
+    
+    0.2.2 has big changes compare to 0.2.1
+    
+    - refactor the Makefile
+    - refactor the config system, hypervisor will config the
+      iomem and virq for the vm automaticly via the dtb
+    
+    Signed-off-by: Min Le <lemin9538@gmail.com>
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu- rpi_3_defconfig
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ make dtbs
+
+ 
+vidal@ws009:~/minos-workspace$ cd minos-samples/
+vidal@ws009:~/minos-workspace/minos-samples$ make
+make: dtc: Command not found
+Makefile:18: recipe for target 'aarch32-boot.image' failed
+make: *** [aarch32-boot.image] Error 127
+
+
+vidal@ws009:~/minos-workspace/minos-samples$ make
+reading config args
+reading kernel from gvm-aarch32/Image
+reading ramdisk from gvm-aarch32/ramdisk.img
+reading second stage from guest-vm-aarch32.dtb
+Writing Boot Image aarch32-boot.img
+reading config args
+reading kernel from gvm-aarch64/Image
+reading ramdisk from gvm-aarch64/ramdisk.img
+reading second stage from guest-vm-aarch64.dtb
+Writing Boot Image aarch64-boot.img
+Build Boot Image For Guest VM Done
+
+vidal@ws009:~/minos-workspace/minos-samples$ ls -la gvm-aarch32
+total 12244
+drwxr-xr-x 2 vidal vidal    4096 Nov  4 15:41 .
+drwxr-xr-x 6 vidal vidal    4096 Nov  4 16:48 ..
+-rw-r--r-- 1 vidal vidal    4419 Nov  4 15:41 guest-vm-aarch32.dts
+-rwxr-xr-x 1 vidal vidal 6897664 Nov  4 15:41 Image
+-rw-r--r-- 1 vidal vidal 5622142 Nov  4 15:41 ramdisk.img
+
+vidal@ws009:~/minos-workspace/minos-samples$ ls -la gvm-aarch64
+total 10664
+drwxr-xr-x 2 vidal vidal    4096 Nov  4 15:41 .
+drwxr-xr-x 6 vidal vidal    4096 Nov  4 16:48 ..
+-rw-r--r-- 1 vidal vidal    4451 Nov  4 15:41 guest-vm-aarch64.dts
+-rwxr-xr-x 1 vidal vidal 9831936 Nov  4 15:41 Image
+-rw-r--r-- 1 vidal vidal 1068577 Nov  4 15:41 ramdisk.img
+
+Goals for this effort
+  Learn how to cross compile the Linux kernel, modules, and device trees.
+  Learn install a new kernel on a system.
+  Learn about Virtual Systems using minos-hypervisor.
+
+ 
+*************This image is no longer available for Download*************
+The starting image used by Le Min was 
+http://leyunxi.com/static/debian-arm64-rpi3bplus.img
+Tested a 32GB micro sd using the instructions 
+https://github.com/develone/gentoo-on-rpi-64bit
+
+devel@mypi3-13:~ $ ssh -Y demouser@pi64
+Password: 
+X11 forwarding request failed on channel 0
+
+==============================================================================
+|    Welcome to 64-bit Gentoo Linux for the Raspberry Pi 3 B/B+ & Pi 4 B!    |
+|         MicroSD-card image maintainer: sakaki <sakaki@deciban.com>         |
+==============================================================================
+| There is ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law |
+==============================================================================
+|            (Edit, or delete, /etc/motd to modify this message)             |
+==============================================================================
+demouser@pi64 ~ $ uname -a
+Linux pi64 4.19.67-v8-174fcab91765-bis+ #2 SMP PREEMPT Tue Aug 27 13:29:20 GMT 2019 aarch64 GNU/Linux
+-bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+cd minos-samples
+make 
+***********************Steps to transfer***********************
+Steps to transfer  u-boot, linux kernel, linux modules, minos-samples, to 
+Next steps will be to copy the files to the 16GB micro sd card.
+
+vidal@ws009:~/minos-workspace/minos-samples$ sudo cp aarch32-boot.img /media/vidal/root/home/demouser/
+vidal@ws009:~/minos-workspace/minos-samples$ sudo cp aarch64-boot.img /media/vidal/root/home/demouser/
+The following files were added /home/demouser to gentoo 64 bit image no adverse effect. 
+Still booting with linux 4.19.67
+vidal@ws009:~/minos-workspace/linux-raspberry$ sudo make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_install INSTALL_MOD_PATH=/media/vidal/root
+The following folder was added to /lib to gentoo 64 bit image no adverse effect. 
+Still booting with linux 4.19.67
+drwxr-xr-x  3 root root 4096 Nov  7 18:36 4.20.0-rc7-v8+
+
+vidal@ws009:~/minos-workspace/u-boot$ sudo cp u-boot.bin /media/vidal/boot/kernel8.img
+vidal@ws009:~/minos-workspace/u-boot$ md5sum u-boot.bin 
+975c565d5c2d4b3595264d67de090b7b  u-boot.bin
+vidal@ws009:~/minos-workspace/u-boot$ md5sum /media/vidal/boot/kernel8.img 
+975c565d5c2d4b3595264d67de090b7b  /media/vidal/boot/kernel8.img
+
+vidal@ws009:~/minos-workspace/linux-raspberry$ sudo cp arch/arm64/boot/Image /media/vidal/boot/
+vidal@ws009:~/minos-workspace/linux-raspberry$ md5sum arch/arm64/boot/Image 
+74d25ee241657c4fe65f014bbda07dab  arch/arm64/boot/Image
+vidal@ws009:~/minos-workspace/linux-raspberry$ md5sum /media/vidal/boot/Image 
+74d25ee241657c4fe65f014bbda07dab  /media/vidal/boot/Image
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ sudo cp hypervisor/dtbs/bcm2837-rpi-3-b-plus.dtb /media/vidal/boot/
+[sudo] password for vidal: 
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum hypervisor/dtbs/bcm2837-rpi-3-b-plus.dtb 
+fe884463577dac84b7e27c716e015364  hypervisor/dtbs/bcm2837-rpi-3-b-plus.dtb
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum /media/vidal/boot/bcm2837-rpi-3-b-plus.dtb 
+fe884463577dac84b7e27c716e015364  /media/vidal/boot/bcm2837-rpi-3-b-plus.dtb
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ sudo cp hypervisor/minos.bin /media/vidal/root/home/demouser/
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum hypervisor/minos.bin 
+1971370c87e7e97872fdb6dc95b8ce31  hypervisor/minos.bin
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum /media/vidal/root/home/demouser/minos.bin 
+1971370c87e7e97872fdb6dc95b8ce31  /media/vidal/root/home/demouser/minos.bin
+
+vidal@ws009:~/minos-workspace/minos-hypervisor$ sudo cp mvm/mvm /media/vidal/root/home/demouser/
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum mvm/mvm
+589fbf11ee6cf2146c00fb7fcc6ad014  mvm/mvm
+vidal@ws009:~/minos-workspace/minos-hypervisor$ md5sum /media/vidal/root/home/demouser/mvm 
+589fbf11ee6cf2146c00fb7fcc6ad014  /media/vidal/root/home/demouser/mvm
+
+Modify Raspberry config.txt for Minos
+ arm_control=0x200
+ #dtoverlay=pi3-miniuart-bt
+ enable_uart=1
+ kernel=kernel8.img
+vidal@ws009:/media/vidal/boot$ sudo cp config.txt config.txt-pi64
+vidal@ws009:/media/vidal/boot$ diff config.txt config.txt-pi64 
+1,5d0
+< arm_control=0x200
+< #dtoverlay=pi3-miniuart-bt
+< enable_uart=1
+< kernel=kernel8.img
+< 
+
+
+***********************Steps to transfer***********************
+
+As root or sudo create a micro sd with 64 bit gentoo.
+
+
+
+xzcat genpi64lite.img.xz > /dev/sdX && sync
+On first boot
+Change the demouser & root password default is raspberrypi64
+
+Change the default keymaps to desired country.
+/etc/conf.d/keymaps
+demouser@pi64 /etc/conf.d $ diff keymaps keymaps.boot 
+3c3
+< keymap="us"
+---
+> keymap="uk"
+
+rc-update add keymaps boot
+Also need to change the keyboard layout.
+Applications/Settings/Keyboard/layout. Chg to English(US)
+vidal@ws009:~/minos-workspace/u-boot$ sudo cp u-boot.bin /media/vidal/boot/kernel8.img
+vidal@ws009:~/minos-workspace/linux-raspberry$ cp arch/arm64/boot/Image /media/vidal/boot/
+vidal@ws009:~/minos-workspace/minos-samples$ sudo cp aarch32-boot.img /media/vidal/root/home/demouser/
+vidal@ws009:~/minos-workspace/minos-samples$ sudo cp aarch64-boot.img /media/vidal/root/home/demouser/
+The following files were added /home/demouser to gentoo 64 bit image no adverse effect. 
+Still booting with linux 4.19.67
+-rw-r--r--  1 root     root     12527616 Nov  7 18:39 aarch32-boot.img
+-rw-r--r--  1 root     root     10907648 Nov  7 18:39 aarch64-boot.img
+sudo cp aarch32-boot.img /media/zac/711a5ddf-1ff4-4d5a-ad95-8b9b69953513/home/jiangxianxu/boot32.img
+sudo cp aarch64-boot.img /media/zac/711a5ddf-1ff4-4d5a-ad95-8b9b69953513/home/jiangxianxu/boot64.img
+ 
+
+
+
+
+
+
+vidal@ws009:~/minos-workspace/u-boot$ make -j4
+scripts/kconfig/conf  --syncconfig Kconfig
+  CHK     include/config.h
+  UPD     include/config.h
+  CFG     u-boot.cfg
+  GEN     include/autoconf.mk.dep
+cc1: warning: unknown register name: x18
+cc1: warning: unknown register name: x18
+  GEN     include/autoconf.mk
+  CHK     include/config/uboot.release
+  CHK     include/generated/timestamp_autogenerated.h
+  UPD     include/generated/timestamp_autogenerated.h
+*** Your GCC is older than 6.0 and is not supported
+arch/arm/config.mk:66: recipe for target 'checkgcc6' failed
+make: *** [checkgcc6] Error 1
+make: *** Waiting for unfinished jobs....
+  UPD     include/config/uboot.release
+make: *** wait: No child processes.  Stop.
+
+vidal@ws009:~$ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+ Toolchain test builds; see https://wiki.ubuntu.com/ToolChain
+
+ More info: https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test
+Press [ENTER] to continue or ctrl-c to cancel adding it
+
+gpg: keyring `/tmp/tmp307kxpq8/secring.gpg' created
+gpg: keyring `/tmp/tmp307kxpq8/pubring.gpg' created
+gpg: requesting key BA9EF27F from hkp server keyserver.ubuntu.com
+gpg: /tmp/tmp307kxpq8/trustdb.gpg: trustdb created
+gpg: key BA9EF27F: public key "Launchpad Toolchain builds" imported
+gpg: Total number processed: 1
+gpg:               imported: 1  (RSA: 1)
+OK
+
+vidal@ws009:~$ sudo apt-get update
+
+vidal@ws009:~$ sudo apt install gcc-8
+
+vidal@ws009:~$ sudo apt install g++-8
+
+vidal@ws009:~$ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+update-alternatives: using /usr/bin/gcc-8 to provide /usr/bin/gcc (gcc) in auto mode
+
